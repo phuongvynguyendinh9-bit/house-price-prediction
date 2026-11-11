@@ -1,19 +1,19 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from sklearn.tree import DecisionTreeRegressor
+from sklearn.svm import SVR
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 
 # Cấu hình trang
 st.set_page_config(
-    page_title="Dự Đoán Giá Nhà & Phân Cụm BĐS",
+    page_title="Dự Đoán Giá Nhà (SVM) & Phân Cụm BĐS (K-Means)",
     page_icon="🏠",
     layout="wide"
 )
 
-st.title("🏠 HỆ THỐNG DỰ ĐOÁN GIÁ NHÀ & PHÂN CỤM BĐS")
-st.markdown("Đồ án nhóm kết hợp 2 thuật toán: **Cây quyết định (Decision Tree)** (Dự đoán giá) và **K-Means** (Phân khúc bất động sản).")
+st.title("🏠 HỆ THỐNG DỰ ĐOÁN GIÁ NHÀ (SVM) & PHÂN CỤM (K-MEANS)")
+st.markdown("Đồ án nhóm kết hợp 2 thuật toán: **Support Vector Regression (SVR)** (Dự đoán giá) và **K-Means** (Phân khúc bất động sản).")
 
 # 1. Đọc dữ liệu và huấn luyện mô hình
 @st.cache_data
@@ -40,21 +40,25 @@ def load_and_train_models():
     X = df[features]
     y = df['price']
 
-    # Huấn luyện mô hình Cây Quyết Định (Decision Tree Regressor)
-    dt_model = DecisionTreeRegressor(random_state=42)
-    dt_model.fit(X, y)
+    # Chuẩn hóa dữ liệu đầu vào cho SVM (SVM rất nhạy cảm với scale của dữ liệu)
+    feature_scaler = StandardScaler()
+    X_scaled = feature_scaler.fit_transform(X)
 
-    # Huấn luyện mô hình K-Means để phân cụm (ví dụ dựa trên diện tích sống và giá)
-    scaler = StandardScaler()
+    # Huấn luyện mô hình SVM dạng hồi quy (Support Vector Regression - SVR)
+    svm_model = SVR(kernel='rbf', C=100000, epsilon=1000)
+    svm_model.fit(X_scaled, y)
+
+    # Huấn luyện mô hình K-Means để phân cụm
+    cluster_scaler = StandardScaler()
     cluster_data = df[['sqft_living', 'price']]
-    X_scaled = scaler.fit_transform(cluster_data)
+    X_cluster_scaled = cluster_scaler.fit_transform(cluster_data)
     
     kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
-    df['Cluster'] = kmeans.fit_predict(X_scaled)
+    df['Cluster'] = kmeans.fit_predict(X_cluster_scaled)
     
-    return dt_model, kmeans, scaler, features, df
+    return svm_model, feature_scaler, kmeans, cluster_scaler, features, df
 
-dt_model, kmeans, scaler, features, df = load_and_train_models()
+svm_model, feature_scaler, kmeans, cluster_scaler, features, df = load_and_train_models()
 
 # 2. Giao diện nhập thông số bên Sidebar
 st.sidebar.header("🎛️ Nhập thông số ngôi nhà")
@@ -69,24 +73,27 @@ input_sqft_above = st.sidebar.slider("Diện tích trên mặt đất (sqft_abov
 input_sqft_basement = st.sidebar.slider("Diện tích tầng hầm (sqft_basement)", 0, 4000, 300, 50)
 input_yr_built = st.sidebar.number_input("Năm xây dựng (yr_built)", min_value=1900, max_value=2026, value=1995, step=1)
 
-# 3. Hiển thị kết quả xử lý từ 2 thuật toán
+# 3. Hiển thị kết quả xử lý từ SVM và K-Means
 col1, col2 = st.columns([2, 1])
 
 with col1:
-    st.subheader("📊 Kết quả dự đoán từ thuật toán Cây Quyết Định")
+    st.subheader("📊 Kết quả dự đoán từ thuật toán SVM (SVR)")
     
     user_data = pd.DataFrame([[
         input_bedrooms, input_bathrooms, input_sqft_living, input_sqft_lot,
         input_floors, input_condition, input_sqft_above, input_sqft_basement, input_yr_built
     ]], columns=features)
     
-    # Dự đoán giá bằng Decision Tree
-    predicted_price = dt_model.predict(user_data)[0]
+    # Chuẩn hóa dữ liệu người dùng nhập trước khi đưa vào SVM
+    user_data_scaled = feature_scaler.transform(user_data)
     
-    st.success(f"### Giá nhà dự đoán: **${predicted_price:,.2f} USD**")
+    # Dự đoán giá bằng SVM
+    predicted_price = svm_model.predict(user_data_scaled)[0]
     
-    # Phân cụm ngôi nhà vừa nhập bằng K-means dựa trên diện tích và giá dự đoán
-    user_cluster_scaled = scaler.transform([[input_sqft_living, predicted_price]])
+    st.success(f"### Giá nhà dự đoán (SVM): **${predicted_price:,.2f} USD**")
+    
+    # Phân cụm ngôi nhà bằng K-Means
+    user_cluster_scaled = cluster_scaler.transform([[input_sqft_living, predicted_price]])
     cluster_id = kmeans.predict(user_cluster_scaled)[0]
     
     cluster_names = {
