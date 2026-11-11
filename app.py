@@ -13,7 +13,7 @@ st.set_page_config(
 )
 
 st.title("🏠 HỆ THỐNG DỰ ĐOÁN GIÁ NHÀ (SVM) & PHÂN CỤM (K-MEANS)")
-st.markdown("Đồ án nhóm kết hợp 2 thuật toán: **Support Vector Regression (SVR)** (Dự đoán giá) và **K-Means** (Phân khúc bất động sản).")
+st.markdown("Đồ án nhóm kết hợp 2 thuật toán: **Support Vector Machine (SVM)** (Dự đoán giá) và **K-Means** (Phân khúc bất động sản).")
 
 # 1. Đọc dữ liệu và huấn luyện mô hình
 @st.cache_data
