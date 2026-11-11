@@ -103,5 +103,6 @@ with col2:
     st.metric(label="Giá trung bình toàn tập", value=f"${df['price'].mean():,.0f}")
 
 st.markdown("---")
-st.subheader("🔍 Dữ liệu mẫu tích hợp phân cụm K-Means")
-st.dataframe(df[['price', 'bedrooms', 'bathrooms', 'sqft_living', 'Cluster']].head(10), use_container_width=True)
+st.subheader("🔍 Toàn bộ 20 bộ dữ liệu mẫu tích hợp phân cụm K-Means")
+# Đã đổi từ head(10) thành head(20) để hiển thị trọn vẹn 20 bộ dữ liệu
+st.dataframe(df[['price', 'bedrooms', 'bathrooms', 'sqft_living', 'Cluster']].head(20), use_container_width=True)
